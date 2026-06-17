@@ -1,0 +1,23 @@
+# Build output
+build/
+*.bin
+*.elf
+*.hex
+*.map
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reasonix
+.reasonix/
+
+# Archive / binary files
+*.zip
+*.png
+*.jpg
+reasonix.toml

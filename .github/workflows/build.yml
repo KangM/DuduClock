@@ -1,0 +1,77 @@
+name: Build DuduClock
+
+# 触发条件：推送到main/master、PR、手动触发
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$HOME/.local/bin sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure ESP32 board URL
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+
+      # 缓存 ESP32 core 2.0.8，加速后续编译
+      - name: Cache ESP32 core
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15/packages/esp32
+            ~/Arduino/libraries
+          key: esp32-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: esp32-2.0.8-
+
+      - name: Install ESP32 Core 2.0.8
+        run: |
+          arduino-cli core install esp32:esp32@2.0.8
+
+      - name: Install Arduino libraries
+        run: |
+          arduino-cli lib install "TFT_eSPI"@2.5.43
+          arduino-cli lib install "ArduinoJson"@6.21.5
+          arduino-cli lib install "TaskScheduler"@3.8.1
+          arduino-cli lib install "OneButton"@2.6.1
+
+      - name: Copy TFT_eSPI User_Setup.h
+        run: |
+          TFT_LIB=$(find ~/Arduino/libraries -maxdepth 1 -name "TFT_eSPI" -type d | head -1)
+          echo "TFT_eSPI path: $TFT_LIB"
+          cp User_Setup.h "$TFT_LIB/User_Setup.h"
+
+      - name: Copy stub libraries (DuduUtil, ArduinoZlib)
+        run: |
+          cp -r libraries/DuduUtil ~/Arduino/libraries/DuduUtil
+          cp -r libraries/ArduinoZlib ~/Arduino/libraries/ArduinoZlib
+
+      - name: Compile sketch (ESP32 2.0.8)
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32 \
+            --build-path build \
+            --verbose \
+            .
+
+      # 输出编译产物，可直接下载烧录
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DuduClock-firmware
+          path: |
+            build/*.bin
+            build/*.elf
+          retention-days: 7
