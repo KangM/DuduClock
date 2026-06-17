@@ -17,6 +17,7 @@ jobs:
 
       - name: Install arduino-cli
         run: |
+          mkdir -p "$HOME/.local/bin"
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$HOME/.local/bin sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
@@ -33,8 +34,8 @@ jobs:
           path: |
             ~/.arduino15/packages/esp32
             ~/Arduino/libraries
-          key: esp32-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: esp32-2.0.8-
+          key: esp32-c3-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: esp32-c3-2.0.8-
 
       - name: Install ESP32 Core 2.0.8
         run: |
@@ -53,15 +54,15 @@ jobs:
           echo "TFT_eSPI path: $TFT_LIB"
           cp User_Setup.h "$TFT_LIB/User_Setup.h"
 
-      - name: Copy stub libraries (DuduUtil, ArduinoZlib)
+      - name: Copy local libraries (DuduUtil, ArduinoZlib)
         run: |
           cp -r libraries/DuduUtil ~/Arduino/libraries/DuduUtil
           cp -r libraries/ArduinoZlib ~/Arduino/libraries/ArduinoZlib
 
-      - name: Compile sketch (ESP32 2.0.8)
+      - name: Compile sketch (ESP32-C3, Core 2.0.8)
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32 \
+            --fqbn esp32:esp32:esp32c3 \
             --build-path build \
             --verbose \
             .

@@ -1,12 +1,11 @@
-// User_Setup.h for DuduClock - ST7789 240x240 on ESP32
-// 此文件用于GitHub Actions编译，实际烧录请使用你硬件对应的引脚配置
+// User_Setup.h for DuduClock - ST7789 240x240 on ESP32-C3
+// 此文件用于GitHub Actions编译，请根据实际硬件接线修改引脚！
 
 #ifndef USER_SETUP_LOADED
 #define USER_SETUP_LOADED
 
 // 驱动芯片
 #define ST7789_DRIVER
-// #define TFT_SDA_READ  // 如果使用MISO读取，取消注释
 
 // 屏幕分辨率
 #define TFT_WIDTH  240
@@ -15,14 +14,15 @@
 // 颜色顺序
 #define TFT_RGB_ORDER TFT_BGR
 
-// SPI引脚 (常见DuduClock硬件接线)
-#define TFT_MISO  19
-#define TFT_MOSI  23
-#define TFT_SCLK  18
-#define TFT_CS    5
-#define TFT_DC    2
+// SPI引脚（ESP32-C3 默认SPI：MOSI=7, SCLK=6, MISO=2）
+// 请对照你的硬件接线修改 CS / DC / RST 引脚！
+#define TFT_MISO  2
+#define TFT_MOSI  7
+#define TFT_SCLK  6
+#define TFT_CS    10
+#define TFT_DC    8
 #define TFT_RST   4
-// #define TFT_BL    15  // 背光（如果硬件连接了）
+// #define TFT_BL    5  // 背光（如果硬件连接了）
 
 // SPI频率
 #define SPI_FREQUENCY  40000000
