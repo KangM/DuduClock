@@ -34,8 +34,8 @@ jobs:
           path: |
             ~/.arduino15/packages/esp32
             ~/Arduino/libraries
-          key: esp32-c3-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: esp32-c3-2.0.8-
+          key: airm2m-c3-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: airm2m-c3-2.0.8-
 
       - name: Install ESP32 Core 2.0.8
         run: |
@@ -62,7 +62,7 @@ jobs:
       - name: Compile sketch (ESP32-C3, Core 2.0.8)
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32c3 \
+            --fqbn esp32:esp32:airm2m_core_esp32c3 \
             --build-path build \
             --verbose \
             .
