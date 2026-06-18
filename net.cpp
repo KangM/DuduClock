@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 #include "ArduinoZlib.h"
 #include "common.h"
-#include "PreferencesUtil.h"
+#include "preferencesUtil.h"
 #include "tftUtil.h"
 #include "task.h"
 #include <Arduino.h>

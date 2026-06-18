@@ -1,6 +1,6 @@
 #include <TFT_eSPI.h>
 #include "common.h"
-#include "PreferencesUtil.h"
+#include "preferencesUtil.h"
 
 TFT_eSPI tft = TFT_eSPI(); 
 TFT_eSprite clk = TFT_eSprite(&tft);
