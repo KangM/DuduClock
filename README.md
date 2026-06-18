@@ -281,29 +281,14 @@ esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,
 
 支持：
 
-- push / pull_request 自动编译
-- `workflow_dispatch` 手动编译
-- 手动输入 TFT 宏参数
-
-### workflow_dispatch 可配参数
-
-- `use_tft_flags`
-- `tft_preset`
-- `tft_width`
-- `tft_height`
-- `tft_mosi`
-- `tft_sclk`
-- `tft_cs`
-- `tft_dc`
-- `tft_rst`
-- `tft_rgb_order`
-- `spi_frequency`
-- `spi_read_frequency`
+- tag 推送时自动编译并生成 Release
+- Release 里只提供一个合并后的可刷机 `.bin`
 
 ### 使用建议
 
 - 如果你的本机 `TFT_eSPI` 已经手工改过并且稳定可用，可以先测试默认配置
 - 如果你希望 workflow、不同机器、本地 `arduino-cli` 构建结果尽量一致，建议用编译宏注入
+- 发版时请直接看 GitHub Release 正文里的刷机说明，里面会写明合并后的单文件 `.bin` 名称
 
 ## 目录说明
 
