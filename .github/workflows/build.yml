@@ -1,5 +1,8 @@
 name: Build DuduClock
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
