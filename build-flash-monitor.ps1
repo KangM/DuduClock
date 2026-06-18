@@ -14,6 +14,9 @@ param(
     [switch]$Dtr,
     [Alias("r")]
     [switch]$Rts,
+    [Alias("Borad")]
+    [ValidateSet("airm2m-core-esp32c3", "airm2m-core-esp32c3-cdc")]
+    [string]$Board = "airm2m-core-esp32c3",
     [switch]$UseTftFlags,
     [ValidateSet("default", "c3-240x320", "custom")]
     [string]$TftPreset = "default",
@@ -39,7 +42,11 @@ $SketchDir = if ($SketchPath) {
     Join-Path $PSScriptRoot "DuduClock.ino"
 }
 $LibrariesDir = Join-Path $PSScriptRoot "libraries"
-$Fqbn = "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all"
+$BoardFqbns = @{
+    "airm2m-core-esp32c3" = "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all"
+    "airm2m-core-esp32c3-cdc" = "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=cdc,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all"
+}
+$Fqbn = $BoardFqbns[$Board]
 $BuildTime = Get-Date
 
 if ($TftPreset -eq "default") {
@@ -105,6 +112,9 @@ Options:
   -Clean, -c                   Clean build output before compiling
   -NoMonitor, -nm              Compile and upload only
   -Monitor, -m                 Open monitor only
+  -Board <name>                Board profile. Default: airm2m-core-esp32c3
+                               Values: airm2m-core-esp32c3, airm2m-core-esp32c3-cdc
+  -Borad <name>                Alias for -Board
   -UseTftFlags                 Inject TFT_eSPI compile-time pin flags
   -TftPreset <default|c3-240x320|custom>
   -TftWidth, -TftHeight        TFT resolution
@@ -293,6 +303,7 @@ if ($Clean) { $compileArgs += "--clean" }
 $compileArgs += $SketchDir
 
 Write-Host ("=== Compile DuduClock ({0}) ===" -f $Port) -ForegroundColor Green
+Write-Host ("Board: {0}" -f $Board) -ForegroundColor DarkGray
 Write-Host ("Build time: {0}" -f $BuildTime.ToString("yy/MM/dd HH:mm:ss")) -ForegroundColor DarkGray
 if ($UseTftFlags) {
     Write-Host ("TFT flags: {0}" -f $TftFlags) -ForegroundColor DarkGray

@@ -49,13 +49,21 @@ jobs:
 
       - name: Compile firmware
         run: |
-          arduino-cli compile \
-            --fqbn esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all \
-            --libraries ./libraries \
-            --build-property compiler.cpp.extra_flags="-DBUILD_TIME_YY=${BUILD_TIME_YY} -DBUILD_TIME_MM=${BUILD_TIME_MM} -DBUILD_TIME_DD=${BUILD_TIME_DD} -DBUILD_TIME_HH=${BUILD_TIME_HH} -DBUILD_TIME_MIN=${BUILD_TIME_MIN} -DBUILD_TIME_SS=${BUILD_TIME_SS} -DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1" \
-            --build-property compiler.c.extra_flags="-DBUILD_TIME_YY=${BUILD_TIME_YY} -DBUILD_TIME_MM=${BUILD_TIME_MM} -DBUILD_TIME_DD=${BUILD_TIME_DD} -DBUILD_TIME_HH=${BUILD_TIME_HH} -DBUILD_TIME_MIN=${BUILD_TIME_MIN} -DBUILD_TIME_SS=${BUILD_TIME_SS} -DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1" \
-            --build-path build \
-            .
+          common_flags="-DBUILD_TIME_YY=${BUILD_TIME_YY} -DBUILD_TIME_MM=${BUILD_TIME_MM} -DBUILD_TIME_DD=${BUILD_TIME_DD} -DBUILD_TIME_HH=${BUILD_TIME_HH} -DBUILD_TIME_MIN=${BUILD_TIME_MIN} -DBUILD_TIME_SS=${BUILD_TIME_SS} -DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1"
+          for board in airm2m-core-esp32c3 airm2m-core-esp32c3-cdc; do
+            if [ "$board" = "airm2m-core-esp32c3-cdc" ]; then
+              cdc_on_boot=cdc
+            else
+              cdc_on_boot=default
+            fi
+            arduino-cli compile \
+              --fqbn "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=${cdc_on_boot},CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all" \
+              --libraries ./libraries \
+              --build-property "compiler.cpp.extra_flags=${common_flags}" \
+              --build-property "compiler.c.extra_flags=${common_flags}" \
+              --build-path "build/${board}" \
+              .
+          done
 
       - name: Install esptool
         run: |
@@ -64,11 +72,22 @@ jobs:
       - name: Merge flash bin
         run: |
           mkdir -p release-bin
-          python3 -m esptool --chip esp32c3 merge_bin \
-            -o release-bin/AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bin \
-            0x0 build/DuduClock.ino.bootloader.bin \
-            0x8000 build/DuduClock.ino.partitions.bin \
-            0x10000 build/DuduClock.ino.bin
+          for board in airm2m-core-esp32c3 airm2m-core-esp32c3-cdc; do
+            if [ "$board" = "airm2m-core-esp32c3-cdc" ]; then
+              firmware_name=AirM2M_CORE_ESP32C3_CDC_240x320_DuduClock.ino.bin
+            else
+              firmware_name=AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bin
+            fi
+            python3 -m esptool --chip esp32c3 merge_bin \
+              --flash_mode dio \
+              --flash_freq 80m \
+              --flash_size 4MB \
+              -o "release-bin/${firmware_name}" \
+              0x0 "build/${board}/DuduClock.ino.bootloader.bin" \
+              0x8000 "build/${board}/DuduClock.ino.partitions.bin" \
+              0xe000 "$HOME/.arduino15/packages/esp32/hardware/esp32/2.0.9/tools/partitions/boot_app0.bin" \
+              0x10000 "build/${board}/DuduClock.ino.bin"
+          done
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -77,12 +96,13 @@ jobs:
             release-bin/*.bin
           body: |
             ## 刷机说明
-            本次发布只保留一个可刷机的 `.bin` 文件。
+            本次发布提供两个可刷机的 `.bin` 文件。
             `AirM2M_CORE_ESP32C3` 就是合宙 ESP32-C3 开发板。
             这个单文件已经把 bootloader、分区表和主程序合并好了，直接刷它就行。
 
-            下载后只保留这一个文件：
-            - `AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bin`
+            固件文件：
+            - `AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bin`：USB CDC On Boot Disabled
+            - `AirM2M_CORE_ESP32C3_CDC_240x320_DuduClock.ino.bin`：USB CDC On Boot Enabled
 
             推荐烧录方式：
             1. 连接开发板到电脑。
