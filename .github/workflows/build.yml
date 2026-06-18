@@ -116,27 +116,20 @@ jobs:
 
       - name: Compile firmware
         run: |
-          workdir="$(mktemp -d)"
-          rsync -a \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude 'build' \
-            ./ "$workdir"/
-          mv "$workdir/DuduClock_2.2.ino" "$workdir/DuduClock.ino"
           arduino-cli compile \
             --fqbn esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all \
-            --libraries "$workdir/libraries" \
+            --libraries ./libraries \
             --build-property compiler.cpp.extra_flags="${{ steps.flags.outputs.flags }}" \
             --build-property compiler.c.extra_flags="${{ steps.flags.outputs.flags }}" \
-            --build-path "$workdir/build" \
-            "$workdir"
+            --build-path build \
+            .
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: DuduClock-firmware
           path: |
-            /tmp/**/build/*.bin
-            /tmp/**/build/*.elf
-            /tmp/**/build/*.map
+            build/*.bin
+            build/*.elf
+            build/*.map
           retention-days: 7

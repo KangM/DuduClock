@@ -307,7 +307,7 @@ esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,
 
 ## 目录说明
 
-- `DuduClock_2.2.ino`：主入口与启动流程
+- `DuduClock.ino`：主入口与启动流程
 - `net.cpp` / `net.h`：WiFi、网页配置、天气接口、NTP
 - `task.cpp` / `task.h`：页面绘制与定时任务
 - `tftUtil.cpp` / `tftUtil.h`：TFT 初始化与基础文字绘制
