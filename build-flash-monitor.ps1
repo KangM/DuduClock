@@ -33,7 +33,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$SketchDir = if ($SketchPath) { $SketchPath } else { $PSScriptRoot }
+$SketchDir = if ($SketchPath) {
+    $SketchPath
+} else {
+    Join-Path $PSScriptRoot "DuduClock.ino"
+}
 $LibrariesDir = Join-Path $PSScriptRoot "libraries"
 $Fqbn = "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all"
 $BuildTime = Get-Date
