@@ -6,6 +6,10 @@
 #include "tftUtil.h"
 #include "task.h"
 
+#ifndef BUILD_TIME
+#define BUILD_TIME "unknown"
+#endif
+
 /**
 Dudu澶╂皵鏃堕挓  鐗堟湰2.3
 
@@ -26,6 +30,7 @@ OneButton myButton(BUTTON, true);
 
 void setup() {
   Serial.begin(115200);
+  Serial.println(BUILD_TIME);
   Serial.println("boot: setup begin");
   // TFT鍒濆鍖?
   tftInit();

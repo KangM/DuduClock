@@ -36,11 +36,16 @@ jobs:
           arduino-cli lib install "ArduinoJson@7.4.3"
           arduino-cli lib install "TaskScheduler@4.0.8"
 
+      - name: Set build time
+        run: echo "BUILD_TIME=$(TZ=Asia/Shanghai date '+%y/%m/%d %H:%M:%S')" >> "$GITHUB_ENV"
+
       - name: Compile firmware
         run: |
           arduino-cli compile \
             --fqbn esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all \
             --libraries ./libraries \
+            --build-property compiler.cpp.extra_flags="-DBUILD_TIME=\"${BUILD_TIME}\" -DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1" \
+            --build-property compiler.c.extra_flags="-DBUILD_TIME=\"${BUILD_TIME}\" -DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1" \
             --build-path build \
             .
 

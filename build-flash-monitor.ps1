@@ -36,6 +36,7 @@ $ErrorActionPreference = "Stop"
 $SketchDir = if ($SketchPath) { $SketchPath } else { $PSScriptRoot }
 $LibrariesDir = Join-Path $PSScriptRoot "libraries"
 $Fqbn = "esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all"
+$BuildTime = Get-Date -Format "yy/MM/dd HH:mm:ss"
 
 if ($TftPreset -eq "default") {
     $UseTftFlags = $false
@@ -70,6 +71,7 @@ function Build-TftFlagString {
     ) -join " "
 }
 
+$BuildTimeFlag = '-DBUILD_TIME="' + $BuildTime + '"'
 $TftFlags = ""
 if ($UseTftFlags) {
     $TftFlags = Build-TftFlagString
@@ -270,8 +272,8 @@ if ($Monitor) {
 $compileArgs = @(
     "compile",
     "--fqbn", $Fqbn,
-    "--build-property", "compiler.cpp.extra_flags=$TftFlags",
-    "--build-property", "compiler.c.extra_flags=$TftFlags"
+    "--build-property", "compiler.cpp.extra_flags=$BuildTimeFlag $TftFlags",
+    "--build-property", "compiler.c.extra_flags=$BuildTimeFlag $TftFlags"
 )
 if (Test-Path -LiteralPath $LibrariesDir) {
     $compileArgs += @("--libraries", $LibrariesDir)
@@ -280,6 +282,7 @@ if ($Clean) { $compileArgs += "--clean" }
 $compileArgs += $SketchDir
 
 Write-Host ("=== Compile DuduClock ({0}) ===" -f $Port) -ForegroundColor Green
+Write-Host ("Build time: {0}" -f $BuildTime) -ForegroundColor DarkGray
 if ($UseTftFlags) {
     Write-Host ("TFT flags: {0}" -f $TftFlags) -ForegroundColor DarkGray
 } else {
