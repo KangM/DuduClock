@@ -74,6 +74,16 @@
 
 ## 硬件与接线
 
+### IDE / CLI 对照
+
+| 场景 | Arduino IDE | arduino-cli / CI |
+| --- | --- | --- |
+| TFT 参数 | 主要改 `User_Setup.h` 或自定义 setup 文件 | 通过编译宏注入 |
+| 适配多个屏幕 | 需要手动切换库配置 | 通过脚本参数切换 |
+| 构建方式 | 点 IDE 里的编译/上传 | `build-flash-monitor.ps1`、GitHub Actions |
+| 发版方式 | 手工打包 | tag 触发自动编译并生成 Release |
+| 适合场景 | 单机临时调试 | 可复现构建、自动发版、多人协作 |
+
 ### 已验证的屏幕宏参数
 
 当前仓库默认采用这组 `TFT_eSPI` 宏配置：
@@ -101,7 +111,7 @@
 
 下面这张图是你提供的专用转接板接线参考：
 
-![网购转接板接线](./网购转接板接线.jpg)
+![网购转接板接线](./board-wiring.jpg)
 
 从图中可读出的常用定义是：
 
@@ -212,7 +222,9 @@
 
 ### Arduino 菜单参数
 
-根据 [烧录参数.png](./烧录参数.png)：
+根据 [flash-params.png](./flash-params.png)：
+
+![烧录参数](./flash-params.png)
 
 - 开发板：`AirM2M_CORE_ESP32C3`
 - USB CDC On Boot：`Enabled`

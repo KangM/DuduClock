@@ -21,3 +21,7 @@ Thumbs.db
 *.png
 *.jpg
 reasonix.toml
+
+# Documented images
+!flash-params.png
+!board-wiring.jpg
