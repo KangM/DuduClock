@@ -45,21 +45,40 @@ jobs:
             --build-path build \
             .
 
+      - name: Package flash bins
+        run: |
+          mkdir -p release-bin
+          for file in build/*.bin; do
+            name="$(basename "$file")"
+            cp "$file" "release-bin/AirM2M_CORE_ESP32C3_240x320_$name"
+          done
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/*.bin
-            build/*.elf
-            build/*.map
-          generate_release_notes: true
+            release-bin/*.bin
+          body: |
+            ## 刷机说明
+            本次发布只保留可刷机的 `.bin` 文件。
+            `AirM2M_CORE_ESP32C3` 就是合宙 ESP32-C3 开发板。
+
+            下载后请保留以下文件：
+            - `AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bin`
+            - `AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.bootloader.bin`
+            - `AirM2M_CORE_ESP32C3_240x320_DuduClock.ino.partitions.bin`
+
+            推荐烧录方式：
+            1. 连接开发板到电脑。
+            2. 使用仓库里的 `build-flash-monitor.ps1` 或你常用的 ESP32 烧录工具。
+            3. 选择正确串口后直接刷入上述 `.bin` 文件。
+
+            这个 Release 里不再提供 `.elf` 和 `.map`，它们只用于调试，不参与刷机。
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: DuduClock-firmware
           path: |
-            build/*.bin
-            build/*.elf
-            build/*.map
+            release-bin/*.bin
           retention-days: 7
