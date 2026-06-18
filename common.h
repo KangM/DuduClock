@@ -62,7 +62,7 @@
 #define BACK_BLACK 0
 #define BACK_WHITE 1
 #define D4 12  // 开发板D4灯
-#define BUTTON 8 // 按钮引脚
+#define BUTTON 9 // 按钮引脚
 
 // 和风天气接口
 const String cityURL = "/geo/v2/city/lookup";  // 查询城市代码的接口
@@ -71,7 +71,7 @@ const String futureURL = "/v7/weather/7d";  // 7日天气预报接口
 const String airURL = "/airquality/v1/current/";  // 空气质量接口
 // 定义页面枚举 SETTING-配置页面  WEATHER-实况天气页面  FUTUREWEATHER-一周天气页面  TIMER-计时器  RESET-恢复出厂设置
 enum CurrentPage{
-  SETTING, WEATHER, AIR, FUTUREWEATHER, THEME, TIMER, RESET
+  SETTING_WIFI, SETTING_CITY, WEATHER, AIR, FUTUREWEATHER, THEME, TIMER, RESET
 };
 // 定义结构体
 typedef struct {
@@ -274,5 +274,76 @@ const String ROOT_HTML_PAGE2 PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";         
+
+const String ROOT_HTML_WIFI_PAGE PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang='zh'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>DuduClock WiFi配置</title>
+  <style>
+    body{font-family:Arial,"Microsoft YaHei",sans-serif;max-width:720px;margin:0 auto;padding:20px;}
+    h2{margin:0 0 8px 0;}
+    .row{margin:14px 0;}
+    select,input,button{width:100%;box-sizing:border-box;font-size:16px;padding:10px;}
+    button{border:0;background:#1677ff;color:#fff;border-radius:6px;}
+    .hint{color:#666;font-size:14px;}
+  </style>
+</head>
+<body>
+  <h2>DuduClock WiFi配置</h2>
+  <div class='hint'>先把设备连上路由器，后面的天气参数会在下一页配置。</div>
+  <form action='/configwifi' method='post'>
+    <div class='row'>
+      <select name='ssid' id='ssid'>
+        <option value=''>请选择 WiFi</option>
+        __CURRENT_WIFI_OPTION__
+        __WIFI_OPTIONS__
+      </select>
+    </div>
+    <div class='row'><input type='password' name='pass' placeholder='WiFi密码' value='__PASS__' required></div>
+    <div class='row'><button type='submit'>保存并重启设备</button></div>
+  </form>
+</body>
+</html>
+)rawliteral";
+
+const String ROOT_HTML_CITY_PAGE PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang='zh'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>DuduClock 天气配置</title>
+  <style>
+    body{font-family:Arial,"Microsoft YaHei",sans-serif;max-width:760px;margin:0 auto;padding:20px;}
+    h2{margin:0 0 8px 0;}
+    .row{margin:14px 0;}
+    input,button{width:100%;box-sizing:border-box;font-size:16px;padding:10px;}
+    button{border:0;background:#1677ff;color:#fff;border-radius:6px;}
+    .hint{color:#666;font-size:14px;}
+    .block{padding:12px;border:1px solid #ddd;border-radius:8px;margin-top:14px;}
+  </style>
+</head>
+<body>
+  <h2>DuduClock 天气配置</h2>
+  <div class='hint'>WiFi 已连接，下面配置城市和和风天气凭据。</div>
+  <div class='block'>
+    <div>当前 WiFi：<b>__SSID__</b></div>
+  </div>
+  <form action='/configcity' method='post'>
+    <div class='row'><input type='text' name='city' placeholder='城市名，如：江阴' value='__CITY__' required></div>
+    <div class='row'><input type='text' name='adm' placeholder='上级行政区，可留空' value='__ADM__'></div>
+    <div class='row'><input type='text' name='privateKey' placeholder='和风 PrivateKey' value='__PRIVATE_KEY__' required></div>
+    <div class='row'><input type='text' name='publicKey' placeholder='和风 PublicKey' value='__PUBLIC_KEY__' required></div>
+    <div class='row'><input type='text' name='keyId' placeholder='和风 KeyID' value='__KEY_ID__' required></div>
+    <div class='row'><input type='text' name='projectId' placeholder='和风 ProjectID' value='__PROJECT_ID__' required></div>
+    <div class='row'><input type='text' name='apiHost' placeholder='和风 API Host' value='__API_HOST__' required></div>
+    <div class='row'><button type='submit'>保存并启动时钟</button></div>
+  </form>
+</body>
+</html>
+)rawliteral";
 
 #endif

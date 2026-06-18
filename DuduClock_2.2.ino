@@ -1,4 +1,5 @@
-#include <OneButton.h>
+﻿#include <OneButton.h>
+#include <WiFi.h>
 #include "net.h"
 #include "common.h"
 #include "PreferencesUtil.h"
@@ -6,92 +7,101 @@
 #include "task.h"
 
 /**
-Dudu天气时钟  版本2.2
+Dudu澶╂皵鏃堕挓  鐗堟湰2.2
 
-本次更新内容：
+鏈鏇存柊鍐呭锛?
 
-修改了和风天气的空气质量接口。
-和风天气的空气质量V7接口2026年停止服务，所以将本项目中的空气质量接口更换为了V1。
+淇敼浜嗗拰椋庡ぉ姘旂殑绌烘皵璐ㄩ噺鎺ュ彛銆?
+鍜岄澶╂皵鐨勭┖姘旇川閲廣7鎺ュ彛2026骞村仠姝㈡湇鍔★紝鎵€浠ュ皢鏈」鐩腑鐨勭┖姘旇川閲忔帴鍙ｆ洿鎹负浜哣1銆?
 
 */
 
 
-unsigned int prevDisplay = 0; // 实况天气页面上次显示的时间
-unsigned int preTimerDisplay = 0; // 计数器页面上次显示的毫秒数/10,即10毫秒显示一次
-unsigned long startMillis = 0; // 开始计数时的毫秒数
-int synDataRestartTime = 60; // 同步NTP时间和天气信息时，超过多少秒就重启系统，防止网络不好时，傻等
-bool isCouting = false; // 计时器是否正在工作
+unsigned int prevDisplay = 0; // 瀹炲喌澶╂皵椤甸潰涓婃鏄剧ず鐨勬椂闂?
+unsigned int preTimerDisplay = 0; // 璁℃暟鍣ㄩ〉闈笂娆℃樉绀虹殑姣鏁?10,鍗?0姣鏄剧ず涓€娆?
+unsigned long startMillis = 0; // 寮€濮嬭鏁版椂鐨勬绉掓暟
+int synDataRestartTime = 60; // 鍚屾NTP鏃堕棿鍜屽ぉ姘斾俊鎭椂锛岃秴杩囧灏戠灏遍噸鍚郴缁燂紝闃叉缃戠粶涓嶅ソ鏃讹紝鍌荤瓑
+bool isCouting = false; // 璁℃椂鍣ㄦ槸鍚︽鍦ㄥ伐浣?
 OneButton myButton(BUTTON, true);
 
 void setup() {
   Serial.begin(115200);
-  // TFT初始化
+  Serial.println("boot: setup begin");
+  // TFT鍒濆鍖?
   tftInit();
-  // 显示系统启动文字
+  Serial.println("boot: tftInit done");
+  // 鏄剧ず绯荤粺鍚姩鏂囧瓧
   drawText("系统启动中...");
-  // 测试的时候，先写入WiFi信息，省的配网，生产环境请注释掉
-  // setInfo4Test();
-  // 查询是否有配置过Wifi，没有->进入Wifi配置页面（0），有->进入天气时钟页面（1）
   getWiFiCity();
-  // nvs中没有WiFi信息、城市信息，进入配置页面
-  if(ssid.length() == 0 || pass.length() == 0 || city.length() == 0){
-    currentPage = SETTING; // 将页面置为配置页面
-    wifiConfigBySoftAP(); // 开启SoftAP配置WiFi
-  }else{ // 有WiFi信息，连接WiFi后进入时钟页面
-    currentPage = WEATHER; // 将页面置为时钟页面
-    // 连接WiFi,30秒超时重启并恢复出厂设置
-    connectWiFi(30); 
-    // 初始化一些列数据:NTP对时、城市ID、实况天气、一周天气
-    initDatas();
-    // 绘制实况天气页面
-    drawWeatherPage();
-    // 多任务启动
-    startRunner();
-    // 初始化定时器，让查询天气的多线程任务在一小时后再使能
-    startTimerQueryWeather();
-    // 初始化按键监控
-    myButton.attachClick(click);
-    myButton.attachDoubleClick(doubleclick);
-    myButton.attachLongPressStart(longclick);
-    myButton.setPressMs(2000); //设置长按时间
-    // myButton.setClickMs(300); //设置单击时间
-    myButton.setDebounceMs(10); //设置消抖时长 
+  getHefengConfig();
+  // nvs涓病鏈塛iFi淇℃伅锛屼笅鍙厛閰嶇綉
+  if(ssid.length() == 0 || pass.length() == 0){
+    currentPage = SETTING_WIFI; // 将页面置为配置页面
+    wifiConfigBySoftAP();
+    return;
   }
-}
 
+  currentPage = WEATHER;
+  connectWiFi(30);
+  if(WiFi.status() != WL_CONNECTED){
+    currentPage = SETTING_WIFI;
+    wifiConfigBySoftAP();
+    return;
+  }
+
+  startServer();
+
+  if(city.length() == 0 || privateKey.length() == 0 || publicKey.length() == 0 ||
+     keyId.length() == 0 || projectId.length() == 0 || apiHost.length() == 0){
+    currentPage = SETTING_CITY;
+    cityConfigByWiFi();
+    return;
+  }
+
+  initDatas();
+  drawWeatherPage();
+  startRunner();
+  startTimerQueryWeather();
+  myButton.attachClick(click);
+  myButton.attachDoubleClick(doubleclick);
+  myButton.attachLongPressStart(longclick);
+  myButton.setPressMs(2000);
+  myButton.setDebounceMs(10);
+}
 void loop() {
   myButton.tick();
   switch(currentPage){
-    case SETTING:  // 配置页面
-      doClient(); // 监听客户端配网请求
+    case SETTING_WIFI:
+    case SETTING_CITY:
+      doClient();
       break;
-    case WEATHER:  // 天气时钟页面
+    case WEATHER:  // 澶╂皵鏃堕挓椤甸潰
       executeRunner();
       time_t now;
       time(&now);
-      if(now != prevDisplay){ // 每秒更新一次时间显示
+      if(now != prevDisplay){ // 姣忕鏇存柊涓€娆℃椂闂存樉绀?
         prevDisplay = now;
-        // 绘制时间、日期、星期
+        // 缁樺埗鏃堕棿銆佹棩鏈熴€佹槦鏈?
         drawDateWeek();
       }
       break;
-    case AIR:  // 空气质量页面
+    case AIR:  // 绌烘皵璐ㄩ噺椤甸潰
       executeRunner();
       break;
-    case FUTUREWEATHER:  // 未来天气页面
+    case FUTUREWEATHER:  // 鏈潵澶╂皵椤甸潰
       executeRunner();
       break;
-    case THEME:  // 黑白主题设置页面
+    case THEME:  // 榛戠櫧涓婚璁剧疆椤甸潰
       executeRunner();
       break;
-    case TIMER:  // 计时器页面
-      if(isCouting && (millis() / 10) != preTimerDisplay){ // 每十毫秒更新一次数字显示
+    case TIMER:  // 璁℃椂鍣ㄩ〉闈?
+      if(isCouting && (millis() / 10) != preTimerDisplay){ // 姣忓崄姣鏇存柊涓€娆℃暟瀛楁樉绀?
         preTimerDisplay = millis() / 10;
-        // 绘制计数器数字
+        // 缁樺埗璁℃暟鍣ㄦ暟瀛?
         drawNumsByCount(timerCount + millis() - startMillis);
       }
       break;
-    case RESET:  // 恢复出厂设置页面
+    case RESET:  // 鎭㈠鍑哄巶璁剧疆椤甸潰
       executeRunner();
       break;
     default:
@@ -99,17 +109,17 @@ void loop() {
   }
 }
 
-////////////////////////// 按键区///////////////////////
-// 单击操作，用来切换各个页面
+////////////////////////// 鎸夐敭鍖?//////////////////////
+// 鍗曞嚮鎿嶄綔锛岀敤鏉ュ垏鎹㈠悇涓〉闈?
 void click(){
   if(currentPage == TIMER){
     if(!isCouting){
-      // Serial.println("开始计数");
+      // Serial.println("寮€濮嬭鏁?);
       startMillis = millis();
     }else{
-      // Serial.println("停止计数");
+      // Serial.println("鍋滄璁℃暟");
       timerCount += millis() - startMillis;
-      // 绘制计数器数字
+      // 缁樺埗璁℃暟鍣ㄦ暟瀛?
       drawNumsByCount(timerCount);
     }
     isCouting = !isCouting;
@@ -150,12 +160,11 @@ void doubleclick(){
 void longclick(){
   if(currentPage == RESET){
     Serial.println("恢复出厂设置");
-    // 恢复出厂设置并重启
-    clearWiFiCity();
+    // 鎭㈠鍑哄巶璁剧疆骞堕噸鍚?
     restartSystem("已恢复出厂设置", false);
   }else if(currentPage == THEME){
     Serial.println("更改主题");
-    if(backColor == BACK_BLACK){ // 原先为黑色主题，改为白色
+    if(backColor == BACK_BLACK){ // 鍘熷厛涓洪粦鑹蹭富棰橈紝鏀逛负鐧借壊
       backColor = BACK_WHITE;
       backFillColor = 0xFFFF;
       penColor = 0x0000;
@@ -164,29 +173,28 @@ void longclick(){
       backFillColor = 0x0000;
       penColor = 0xFFFF;
     }
-    // 将新的主题存入nvs
+    // 灏嗘柊鐨勪富棰樺瓨鍏vs
     setBackColor(backColor);
-    // 返回实时天气页面
+    // 杩斿洖瀹炴椂澶╂皵椤甸潰
     drawWeatherPage();
     enableAnimScrollText();
     currentPage = WEATHER;
-  }else if(currentPage == TIMER){
     Serial.println("计数器归零");
-    timerCount = 0; // 计数值归零
-    isCouting = false; // 计数器标志位置为false
-    drawNumsByCount(timerCount); // 重新绘制计数区域，提示区域不用变
+    timerCount = 0; // 璁℃暟鍊煎綊闆?
+    isCouting = false; // 璁℃暟鍣ㄦ爣蹇椾綅缃负false
+    drawNumsByCount(timerCount); // 閲嶆柊缁樺埗璁℃暟鍖哄煙锛屾彁绀哄尯鍩熶笉鐢ㄥ彉
   }
 }
 ////////////////////////////////////////////////////////
 
 
-// 初始化一些列数据:NTP对时、实况天气、一周天气
+// 鍒濆鍖栦竴浜涘垪鏁版嵁:NTP瀵规椂銆佸疄鍐靛ぉ姘斻€佷竴鍛ㄥぉ姘?
 void initDatas(){
-  startTimerShowTips(); // 获取数据时，循环显示提示文字
-  // 记录此时的时间，在同步数据时，超过一定的时间，就直接重启
+  startTimerShowTips(); // 鑾峰彇鏁版嵁鏃讹紝寰幆鏄剧ず鎻愮ず鏂囧瓧
+  // 璁板綍姝ゆ椂鐨勬椂闂达紝鍦ㄥ悓姝ユ暟鎹椂锛岃秴杩囦竴瀹氱殑鏃堕棿锛屽氨鐩存帴閲嶅惎
   time_t start;
   time(&start);
-  // 获取NTP并同步至RTC,第一次同步失败，就一直尝试同步
+  // 鑾峰彇NTP骞跺悓姝ヨ嚦RTC,绗竴娆″悓姝ュけ璐ワ紝灏变竴鐩村皾璇曞悓姝?
   getNTPTime();
   struct tm timeinfo;
   while (!getLocalTime(&timeinfo)){
@@ -199,11 +207,11 @@ void initDatas(){
     getNTPTime();
   }
   Serial.println("对时成功");
-  // 查询是否有城市id，如果没有，就利用city和adm查询出城市id，并保存为location
+  // 鏌ヨ鏄惁鏈夊煄甯俰d锛屽鏋滄病鏈夛紝灏卞埄鐢╟ity鍜宎dm鏌ヨ鍑哄煄甯俰d锛屽苟淇濆瓨涓簂ocation
   if(location.equals("") || lat.equals("") || lon.equals("")){
     getCityID();
   }
-  //第一次查询实况天气,如果查询失败，就一直反复查询
+  //绗竴娆℃煡璇㈠疄鍐靛ぉ姘?濡傛灉鏌ヨ澶辫触锛屽氨涓€鐩村弽澶嶆煡璇?
   getNowWeather();
   while(!queryNowWeatherSuccess){
     time_t end;
@@ -213,7 +221,7 @@ void initDatas(){
     }
     getNowWeather();
   }
-  //第一次查询空气质量,如果查询失败，就一直反复查询
+  //绗竴娆℃煡璇㈢┖姘旇川閲?濡傛灉鏌ヨ澶辫触锛屽氨涓€鐩村弽澶嶆煡璇?
   getAir();
   while(!queryAirSuccess){
     time_t end;
@@ -223,7 +231,7 @@ void initDatas(){
     }
     getAir();
   }
-  //第一次查询一周天气,如果查询失败，就一直反复查询
+  //绗竴娆℃煡璇竴鍛ㄥぉ姘?濡傛灉鏌ヨ澶辫触锛屽氨涓€鐩村弽澶嶆煡璇?
   getFutureWeather();
   while(!queryFutureWeatherSuccess){
     time_t end;
@@ -233,9 +241,10 @@ void initDatas(){
     }
     getFutureWeather();
   }
-  //结束循环显示提示文字的定时器
+  //缁撴潫寰幆鏄剧ず鎻愮ず鏂囧瓧鐨勫畾鏃跺櫒
   timerEnd(timerShowTips);
-  //将isStartQuery置为false,告诉系统，启动时查询天气已完成
+  //灏唅sStartQuery缃负false,鍛婅瘔绯荤粺锛屽惎鍔ㄦ椂鏌ヨ澶╂皵宸插畬鎴?
   isStartQuery = false;
 }
+
 

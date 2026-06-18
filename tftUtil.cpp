@@ -10,9 +10,16 @@ uint16_t penColor;
 
 // 初始化tft
 void tftInit(){
+  Serial.println("tft: init enter");
+  Serial.flush();
   tft.init();
+  Serial.println("tft: init done");
   tft.setSwapBytes(true);
+  Serial.println("tft: swap done");
+  tft.setRotation(0);
+  Serial.println("tft: rotation set");
   getBackColor();
+  Serial.println("tft: backcolor loaded");
   if(backColor == BACK_BLACK){
     backFillColor = 0x0000;
     penColor = 0xFFFF;
@@ -20,7 +27,9 @@ void tftInit(){
     backFillColor = 0xFFFF;
     penColor = 0x0000;
   }
+  Serial.println("tft: colors decided");
   tft.fillScreen(backFillColor);
+  Serial.println("tft: fill done");
 }
 
 // 按背景颜色刷新整个屏幕

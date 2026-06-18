@@ -3,6 +3,6 @@
 
 #include <Arduino.h>
 
-String generateJWT(char *PrivateKey, char *PublicKey, String KeyID, String ProjectID);
+String generateJWT(const char *PrivateKey, const char *PublicKey, String KeyID, String ProjectID);
 
 #endif

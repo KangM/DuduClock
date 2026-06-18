@@ -1,11 +1,81 @@
 name: Build DuduClock
 
-# 触发条件：推送到main/master、PR、手动触发
 on:
   push:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
+    inputs:
+      use_tft_flags:
+        description: "Inject TFT_eSPI compile-time flags"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      tft_preset:
+        description: "TFT preset"
+        required: false
+        default: "c3-240x320"
+        type: choice
+        options:
+          - "default"
+          - "c3-240x320"
+          - "custom"
+      tft_width:
+        description: "TFT width"
+        required: false
+        default: "240"
+        type: string
+      tft_height:
+        description: "TFT height"
+        required: false
+        default: "320"
+        type: string
+      tft_mosi:
+        description: "TFT MOSI"
+        required: false
+        default: "3"
+        type: string
+      tft_sclk:
+        description: "TFT SCLK"
+        required: false
+        default: "2"
+        type: string
+      tft_cs:
+        description: "TFT CS"
+        required: false
+        default: "7"
+        type: string
+      tft_dc:
+        description: "TFT DC"
+        required: false
+        default: "4"
+        type: string
+      tft_rst:
+        description: "TFT RST"
+        required: false
+        default: "5"
+        type: string
+      tft_rgb_order:
+        description: "TFT RGB order"
+        required: false
+        default: "TFT_BGR"
+        type: choice
+        options:
+          - "TFT_RGB"
+          - "TFT_BGR"
+      spi_frequency:
+        description: "SPI write frequency"
+        required: false
+        default: "40000000"
+        type: string
+      spi_read_frequency:
+        description: "SPI read frequency"
+        required: false
+        default: "20000000"
+        type: string
 
 jobs:
   build:
@@ -16,58 +86,43 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install arduino-cli
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$HOME/.local/bin sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: latest
 
-      - name: Configure ESP32 board URL
+      - name: Install ESP32 core
         run: |
-          arduino-cli config init
+          arduino-cli config init --overwrite
           arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
+          arduino-cli core install esp32:esp32@2.0.9
 
-      # 缓存 ESP32 core 2.0.8，加速后续编译
-      - name: Cache ESP32 core
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.arduino15/packages/esp32
-            ~/Arduino/libraries
-          key: airm2m-c3-2.0.8-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: airm2m-c3-2.0.8-
-
-      - name: Install ESP32 Core 2.0.8
+      - name: Build flags
+        id: flags
+        shell: bash
         run: |
-          arduino-cli core install esp32:esp32@2.0.8
+          if [ "${{ inputs.use_tft_flags || 'true' }}" = "true" ]; then
+            if [ "${{ inputs.tft_preset || 'c3-240x320' }}" = "c3-240x320" ]; then
+              echo "flags=-DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=240 -DTFT_HEIGHT=320 -DTFT_RGB_ORDER=TFT_BGR -DTFT_MISO=-1 -DTFT_MOSI=3 -DTFT_SCLK=2 -DTFT_CS=7 -DTFT_DC=4 -DTFT_RST=5 -DSPI_FREQUENCY=40000000 -DSPI_READ_FREQUENCY=20000000 -DSMOOTH_FONT=1" >> $GITHUB_OUTPUT
+            elif [ "${{ inputs.tft_preset || 'c3-240x320' }}" = "custom" ]; then
+              echo "flags=-DUSER_SETUP_LOADED=1 -DST7789_DRIVER=1 -DTFT_WIDTH=${{ inputs.tft_width || '240' }} -DTFT_HEIGHT=${{ inputs.tft_height || '320' }} -DTFT_RGB_ORDER=${{ inputs.tft_rgb_order || 'TFT_BGR' }} -DTFT_MISO=-1 -DTFT_MOSI=${{ inputs.tft_mosi || '3' }} -DTFT_SCLK=${{ inputs.tft_sclk || '2' }} -DTFT_CS=${{ inputs.tft_cs || '7' }} -DTFT_DC=${{ inputs.tft_dc || '4' }} -DTFT_RST=${{ inputs.tft_rst || '5' }} -DSPI_FREQUENCY=${{ inputs.spi_frequency || '40000000' }} -DSPI_READ_FREQUENCY=${{ inputs.spi_read_frequency || '20000000' }} -DSMOOTH_FONT=1" >> $GITHUB_OUTPUT
+            else
+              echo "flags=" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "flags=" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Install Arduino libraries
-        run: |
-          arduino-cli lib install "TFT_eSPI"@2.5.43
-          arduino-cli lib install "ArduinoJson"@6.21.5
-          arduino-cli lib install "TaskScheduler"@3.8.1
-          arduino-cli lib install "OneButton"@2.6.1
-
-      - name: Copy TFT_eSPI User_Setup.h
-        run: |
-          TFT_LIB=$(find ~/Arduino/libraries -maxdepth 1 -name "TFT_eSPI" -type d | head -1)
-          echo "TFT_eSPI path: $TFT_LIB"
-          cp User_Setup.h "$TFT_LIB/User_Setup.h"
-
-      - name: Copy local libraries (DuduUtil, ArduinoZlib)
-        run: |
-          cp -r libraries/DuduUtil ~/Arduino/libraries/DuduUtil
-          cp -r libraries/ArduinoZlib ~/Arduino/libraries/ArduinoZlib
-
-      - name: Compile sketch (ESP32-C3, Core 2.0.8)
+      - name: Compile firmware
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:airm2m_core_esp32c3 \
+            --fqbn esp32:esp32:AirM2M_CORE_ESP32C3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=80,FlashFreq=80,PartitionScheme=huge_app,DebugLevel=none,EraseFlash=all \
+            --libraries ./libraries \
+            --build-property compiler.cpp.extra_flags="${{ steps.flags.outputs.flags }}" \
+            --build-property compiler.c.extra_flags="${{ steps.flags.outputs.flags }}" \
             --build-path build \
-            --verbose \
             .
 
-      # 输出编译产物，可直接下载烧录
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
@@ -75,4 +130,5 @@ jobs:
           path: |
             build/*.bin
             build/*.elf
+            build/*.map
           retention-days: 7

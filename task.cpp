@@ -3,7 +3,7 @@
 #include "net.h"
 #include "common.h"
 
-enum CurrentPage currentPage = SETTING;
+enum CurrentPage currentPage = SETTING_WIFI;
 String scrollText[5]; // 轮播天气的信息
 int currentIndex = 0; // 轮播索引
 int currnetImgAnimIndex = 0; // 太空人动画索引

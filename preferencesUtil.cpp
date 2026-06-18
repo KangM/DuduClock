@@ -44,10 +44,30 @@ void clearWiFiCity(){
   prefs.end();
 }
 
+void getHefengConfig(){
+  prefs.begin("clock");
+  privateKey = prefs.getString("privateKey", "");
+  publicKey = prefs.getString("publicKey", "");
+  keyId = prefs.getString("keyId", "");
+  projectId = prefs.getString("projectId", "");
+  apiHost = prefs.getString("apiHost", "");
+  prefs.end();
+}
+
+void setHefengConfig(){
+  prefs.begin("clock");
+  prefs.putString("privateKey", privateKey);
+  prefs.putString("publicKey", publicKey);
+  prefs.putString("keyId", keyId);
+  prefs.putString("projectId", projectId);
+  prefs.putString("apiHost", apiHost);
+  prefs.end();
+}
+
 // 获取屏幕背光颜色
 void getBackColor(){
   prefs.begin("clock");
-  backColor = prefs.getInt("backColor",BACK_BLACK);
+  backColor = prefs.getInt("backColor",BACK_WHITE);
   prefs.end();
 }
 
