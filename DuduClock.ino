@@ -6,8 +6,23 @@
 #include "tftUtil.h"
 #include "task.h"
 
-#ifndef BUILD_TIME
-#define BUILD_TIME "unknown"
+#ifndef BUILD_TIME_YY
+#define BUILD_TIME_YY 0
+#endif
+#ifndef BUILD_TIME_MM
+#define BUILD_TIME_MM 0
+#endif
+#ifndef BUILD_TIME_DD
+#define BUILD_TIME_DD 0
+#endif
+#ifndef BUILD_TIME_HH
+#define BUILD_TIME_HH 0
+#endif
+#ifndef BUILD_TIME_MIN
+#define BUILD_TIME_MIN 0
+#endif
+#ifndef BUILD_TIME_SS
+#define BUILD_TIME_SS 0
 #endif
 
 /**
@@ -30,7 +45,13 @@ OneButton myButton(BUTTON, true);
 
 void setup() {
   Serial.begin(115200);
-  Serial.println(BUILD_TIME);
+  Serial.printf("%02d/%02d/%02d %02d:%02d:%02d\r\n",
+                BUILD_TIME_YY,
+                BUILD_TIME_MM,
+                BUILD_TIME_DD,
+                BUILD_TIME_HH,
+                BUILD_TIME_MIN,
+                BUILD_TIME_SS);
   Serial.println("boot: setup begin");
   // TFT鍒濆鍖?
   tftInit();
